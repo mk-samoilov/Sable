@@ -3,6 +3,7 @@
 #include "sableEng/utils/defines.h"
 #include "sableEng/gfx/vkdefines.h"
 #include "sableEng/gfx/vkdebug.h"
+#include "sableEng/gfx/vkdevice.h"
 
 namespace Gfx
 {

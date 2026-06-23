@@ -22,6 +22,8 @@ namespace Gfx
         if (ENABLE_VALIDATION_LAYERS) {
             Core::Deletor::GetInstance()->Push(Core::Deletor::NONE, [this]{ Debug.Destroy(Instance); });
         }
+
+        Device::GetInstance()->Init();
     }
 
     void Vulkan::CreateInstance()
