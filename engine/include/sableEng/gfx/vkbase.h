@@ -4,6 +4,7 @@
 #include "sableEng/gfx/vkdefines.h"
 #include "sableEng/gfx/vkdebug.h"
 #include "sableEng/gfx/vkdevice.h"
+#include "sableEng/gfx/vkswapchain.h"
 
 namespace Gfx
 {
