@@ -46,7 +46,7 @@ namespace Gfx
         VK_ASSERT(vkAllocateCommandBuffers(device, &allocInfo, buffers), "failed to allocate command buffers!");
 
         for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            Frames[i].Cmd = buffers[i];
+            Frames[i].Cmd.SetCmd(buffers[i]);
         }
     }
 
@@ -119,14 +119,13 @@ namespace Gfx
         }
     }
 
-    void Renderer::RecordCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex)
+    void Renderer::RecordCommandBuffer(CommandBuffer& cmd, uint32_t imageIndex)
     {
         VkExtent2D extent = Swapchain::GetInstance()->GetExtent();
 
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        cmd.Begin();
 
-        VK_ASSERT(vkBeginCommandBuffer(cmd, &beginInfo), "failed to begin recording command buffer!");
+        VkCommandBuffer raw = cmd.GetCmd();
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -139,9 +138,9 @@ namespace Gfx
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
 
-        vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(raw, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline::GetInstance()->GetGraphicsPipeline());
+            vkCmdBindPipeline(raw, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline::GetInstance()->GetGraphicsPipeline());
 
             VkViewport viewport{};
             viewport.x = 0.0f;
@@ -150,18 +149,18 @@ namespace Gfx
             viewport.height = (float) extent.height;
             viewport.minDepth = 0.0f;
             viewport.maxDepth = 1.0f;
-            vkCmdSetViewport(cmd, 0, 1, &viewport);
+            vkCmdSetViewport(raw, 0, 1, &viewport);
 
             VkRect2D scissor{};
             scissor.offset = { 0, 0 };
             scissor.extent = extent;
-            vkCmdSetScissor(cmd, 0, 1, &scissor);
+            vkCmdSetScissor(raw, 0, 1, &scissor);
 
-            vkCmdDraw(cmd, 3, 1, 0, 0);
+            vkCmdDraw(raw, 3, 1, 0, 0);
 
-        vkCmdEndRenderPass(cmd);
+        vkCmdEndRenderPass(raw);
 
-        VK_ASSERT(vkEndCommandBuffer(cmd), "failed to record command buffer!");
+        cmd.End();
     }
 
     void Renderer::RecreateSwapchain()
@@ -200,7 +199,7 @@ namespace Gfx
 
         vkResetFences(device, 1, &frame.InFlight);
 
-        vkResetCommandBuffer(frame.Cmd, 0);
+        frame.Cmd.Reset();
         RecordCommandBuffer(frame.Cmd, imageIndex);
 
         VkSubmitInfo submitInfo{};
@@ -211,8 +210,9 @@ namespace Gfx
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
+        VkCommandBuffer cmd = frame.Cmd.GetCmd();
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &frame.Cmd;
+        submitInfo.pCommandBuffers = &cmd;
 
         VkSemaphore signalSemaphores[] = { RenderFinishedSemaphores[imageIndex] };
         submitInfo.signalSemaphoreCount = 1;

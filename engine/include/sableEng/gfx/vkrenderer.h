@@ -2,6 +2,7 @@
 
 #include "sableEng/utils/defines.h"
 #include "sableEng/gfx/vkdefines.h"
+#include "sableEng/gfx/vkcmdhelper.h"
 
 namespace Gfx
 {
@@ -13,9 +14,9 @@ namespace Gfx
 
         private:
             struct Frame {
-                VkCommandBuffer Cmd            = VK_NULL_HANDLE;
-                VkSemaphore     ImageAvailable = VK_NULL_HANDLE;
-                VkFence         InFlight       = VK_NULL_HANDLE;
+                Gfx::CommandBuffer Cmd;
+                VkSemaphore        ImageAvailable = VK_NULL_HANDLE;
+                VkFence            InFlight       = VK_NULL_HANDLE;
             };
 
             void CreateCommandPool();
@@ -23,7 +24,7 @@ namespace Gfx
             void CreateFramebuffers();
             void CreateSyncObjects();
             void CreateRenderFinishedSemaphores();
-            void RecordCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex);
+            void RecordCommandBuffer(CommandBuffer& cmd, uint32_t imageIndex);
             void RecreateSwapchain();
 
             VkCommandPool CommandPool = VK_NULL_HANDLE;
