@@ -6,7 +6,6 @@ set(GLFW_BUILD_DOCS     OFF CACHE BOOL "" FORCE)
   
 add_subdirectory(libs/glfw)
 add_subdirectory(libs/glm)
-add_subdirectory(libs/stb)
 
 file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
@@ -25,12 +24,14 @@ set_target_properties(engine PROPERTIES
     OUTPUT_NAME sable
 )
 
-target_include_directories(engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(engine PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/stb
+)
 
 target_link_libraries(engine PUBLIC
     Threads::Threads
     Vulkan::Vulkan
     glfw
     glm::glm
-    stb
 )
