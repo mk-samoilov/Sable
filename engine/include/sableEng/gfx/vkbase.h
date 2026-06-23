@@ -6,6 +6,7 @@
 #include "sableEng/gfx/vkdevice.h"
 #include "sableEng/gfx/vkswapchain.h"
 #include "sableEng/gfx/vkpipeline.h"
+#include "sableEng/gfx/vkrenderer.h"
 
 namespace Gfx
 {

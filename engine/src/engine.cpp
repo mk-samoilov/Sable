@@ -22,7 +22,11 @@ void Engine::Run(const std::function<void(float dt)>& update)
         if (update) {
             update(dt);
         }
+
+        Gfx::Renderer::GetInstance()->DrawFrame();
     }
+
+    vkDeviceWaitIdle(Gfx::Device::GetInstance()->GetDevice());
 
     CleanUp();
 }
