@@ -25,6 +25,7 @@ namespace Gfx
 
         Device::GetInstance()->Init();
         Swapchain::GetInstance()->Init();
+        Pipeline::GetInstance()->Init();
     }
 
     void Vulkan::CreateInstance()

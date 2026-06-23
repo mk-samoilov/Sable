@@ -1,7 +1,7 @@
 #pragma once
 
 #include "sableEng/utils/defines.h"
-#include "sableEng/gfx/vkdevice.h"
+#include "sableEng/gfx/vkdefines.h"
 
 namespace Gfx
 {
