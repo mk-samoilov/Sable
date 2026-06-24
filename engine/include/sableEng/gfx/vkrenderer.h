@@ -21,14 +21,12 @@ namespace Gfx
 
             void CreateCommandPool();
             void CreateCommandBuffers();
-            void CreateFramebuffers();
             void CreateSyncObjects();
             void CreateRenderFinishedSemaphores();
             void RecordCommandBuffer(CommandBuffer& cmd, uint32_t imageIndex);
             void RecreateSwapchain();
 
             VkCommandPool CommandPool = VK_NULL_HANDLE;
-            std::vector<VkFramebuffer> Framebuffers;
             std::vector<VkSemaphore> RenderFinishedSemaphores;
             Frame Frames[MAX_FRAMES_IN_FLIGHT];
             uint32_t CurrentFrame = 0;

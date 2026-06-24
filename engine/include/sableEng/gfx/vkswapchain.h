@@ -14,6 +14,7 @@ namespace Gfx
             VkFormat GetImageFormat() const { return ImageFormat; }
             VkExtent2D GetExtent() const { return Extent; }
             const std::vector<VkImageView>& GetImageViews() const { return ImageViews; }
+            VkImage GetImage(uint32_t index) const { return Images[index]; }
             uint32_t GetImageCount() const { return static_cast<uint32_t>(Images.size()); }
 
         private:

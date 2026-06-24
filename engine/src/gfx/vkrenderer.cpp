@@ -10,7 +10,6 @@ namespace Gfx
     void Renderer::Init() {
         CreateCommandPool();
         CreateCommandBuffers();
-        CreateFramebuffers();
         CreateSyncObjects();
         CreateRenderFinishedSemaphores();
     }
@@ -47,34 +46,6 @@ namespace Gfx
 
         for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             Frames[i].Cmd.SetCmd(buffers[i]);
-        }
-    }
-
-    void Renderer::CreateFramebuffers()
-    {
-        VkDevice device = Device::GetInstance()->GetDevice();
-        const std::vector<VkImageView>& imageViews = Swapchain::GetInstance()->GetImageViews();
-        VkExtent2D extent = Swapchain::GetInstance()->GetExtent();
-        VkRenderPass renderPass = Pipeline::GetInstance()->GetRenderPass();
-
-        Framebuffers.resize(imageViews.size());
-
-        for (size_t i = 0; i < imageViews.size(); i++) {
-            VkImageView attachments[] = { imageViews[i] };
-
-            VkFramebufferCreateInfo framebufferInfo{};
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = renderPass;
-            framebufferInfo.attachmentCount = 1;
-            framebufferInfo.pAttachments = attachments;
-            framebufferInfo.width = extent.width;
-            framebufferInfo.height = extent.height;
-            framebufferInfo.layers = 1;
-
-            VK_ASSERT(vkCreateFramebuffer(device, &framebufferInfo, nullptr, &Framebuffers[i]), "failed to create framebuffer!");
-
-            VkFramebuffer framebuffer = Framebuffers[i];
-            Core::Deletor::GetInstance()->Push(Core::Deletor::SWAPCHAIN, [device, framebuffer]{ vkDestroyFramebuffer(device, framebuffer, nullptr); });
         }
     }
 
@@ -129,8 +100,6 @@ namespace Gfx
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = Pipeline::GetInstance()->GetRenderPass();
-        renderPassInfo.framebuffer = Framebuffers[imageIndex];
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = extent;
 
@@ -138,27 +107,70 @@ namespace Gfx
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
 
-        vkCmdBeginRenderPass(raw, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = Gfx::Swapchain::GetInstance()->GetImage(imageIndex);
+        barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
-            vkCmdBindPipeline(raw, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline::GetInstance()->GetGraphicsPipeline());
+        vkCmdPipelineBarrier(raw,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            0, 0, nullptr, 0, nullptr, 1, &barrier
+        );
 
-            VkViewport viewport{};
-            viewport.x = 0.0f;
-            viewport.y = 0.0f;
-            viewport.width = (float) extent.width;
-            viewport.height = (float) extent.height;
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-            vkCmdSetViewport(raw, 0, 1, &viewport);
+        VkRenderingAttachmentInfo colorAttachment{};
+        colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        colorAttachment.imageView = Gfx::Swapchain::GetInstance()->GetImageViews()[imageIndex];
+        colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.clearValue.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
 
-            VkRect2D scissor{};
-            scissor.offset = { 0, 0 };
-            scissor.extent = extent;
-            vkCmdSetScissor(raw, 0, 1, &scissor);
+        VkRenderingInfo renderingInfo{};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo.renderArea = {{0, 0}, Gfx::Swapchain::GetInstance()->GetExtent()};
+        renderingInfo.layerCount = 1;
+        renderingInfo.colorAttachmentCount = 1;
+        renderingInfo.pColorAttachments = &colorAttachment;
 
-            vkCmdDraw(raw, 3, 1, 0, 0);
+        vkCmdBeginRendering(raw, &renderingInfo);
 
-        vkCmdEndRenderPass(raw);
+        vkCmdBindPipeline(raw, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline::GetInstance()->GetGraphicsPipeline());
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float) extent.width;
+        viewport.height = (float) extent.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(raw, 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = { 0, 0 };
+        scissor.extent = extent;
+        vkCmdSetScissor(raw, 0, 1, &scissor);
+
+        vkCmdDraw(raw, 3, 1, 0, 0);
+
+        vkCmdEndRendering(raw);
+
+        barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        barrier.dstAccessMask = 0;
+
+        vkCmdPipelineBarrier(raw,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+            0, 0, nullptr, 0, nullptr, 1, &barrier
+        );
 
         cmd.End();
     }
@@ -177,7 +189,6 @@ namespace Gfx
         Core::Deletor::GetInstance()->CleanIf(Core::Deletor::SWAPCHAIN);
 
         Swapchain::GetInstance()->Init();
-        CreateFramebuffers();
         CreateRenderFinishedSemaphores();
     }
 

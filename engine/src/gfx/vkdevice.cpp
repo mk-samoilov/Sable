@@ -65,8 +65,13 @@ namespace Gfx
 
         VkPhysicalDeviceFeatures deviceFeatures{};
 
+        VkPhysicalDeviceDynamicRenderingFeatures dynRendering{};
+        dynRendering.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
+        dynRendering.dynamicRendering = VK_TRUE;
+
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        createInfo.pNext = &dynRendering;
         createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
         createInfo.pEnabledFeatures = &deviceFeatures;

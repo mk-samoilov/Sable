@@ -1,58 +1,13 @@
 #include "sableEng/gfx/vkpipeline.h"
 #include "sableEng/gfx/vkbase.h"
+#include "sableEng/gfx/vkswapchain.h"
 #include "sableEng/core/assetshelper.h"
 #include "sableEng/core/deletor.h"
 
 namespace Gfx
 {
     void Pipeline::Init() {
-        CreateRenderPass();
         CreateGraphicsPipeline();
-    }
-
-    void Pipeline::CreateRenderPass() {
-        VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = Swapchain::GetInstance()->GetImageFormat();
-        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-        VkAttachmentReference colorAttachmentRef{};
-        colorAttachmentRef.attachment = 0;
-        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkSubpassDescription subpass{};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachmentRef;
-
-        VkSubpassDependency dependency{};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-        VkRenderPassCreateInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfo.attachmentCount = 1;
-        renderPassInfo.pAttachments = &colorAttachment;
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &dependency;
-
-        VkDevice device = Device::GetInstance()->GetDevice();
-
-        VK_ASSERT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &RenderPass), "failed to create render pass!");
-
-        VkRenderPass created = RenderPass;
-        Core::Deletor::GetInstance()->Push(Core::Deletor::PIPELINE, [device, created]{ vkDestroyRenderPass(device, created, nullptr); });
     }
 
     void Pipeline::CreateGraphicsPipeline() {
@@ -142,8 +97,15 @@ namespace Gfx
         VkPipelineLayout layout = PipelineLayout;
         Core::Deletor::GetInstance()->Push(Core::Deletor::PIPELINE, [device, layout]{ vkDestroyPipelineLayout(device, layout, nullptr); });
 
+        VkFormat colorFormat = Gfx::Swapchain::GetInstance()->GetImageFormat();
+        VkPipelineRenderingCreateInfo pipelineRenderingInfo{};
+        pipelineRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+        pipelineRenderingInfo.colorAttachmentCount = 1;
+        pipelineRenderingInfo.pColorAttachmentFormats = &colorFormat;
+
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineInfo.pNext = &pipelineRenderingInfo;
         pipelineInfo.stageCount = 2;
         pipelineInfo.pStages = shaderStages;
         pipelineInfo.pVertexInputState = &vertexInputInfo;
@@ -154,7 +116,7 @@ namespace Gfx
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDynamicState = &dynamicState;
         pipelineInfo.layout = PipelineLayout;
-        pipelineInfo.renderPass = RenderPass;
+        pipelineInfo.renderPass = VK_NULL_HANDLE;
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
