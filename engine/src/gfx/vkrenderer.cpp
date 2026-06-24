@@ -2,16 +2,26 @@
 #include "sableEng/gfx/vkbase.h"
 #include "sableEng/core/windowmanager.h"
 #include "sableEng/core/deletor.h"
+#include "sableEng/gfx/vkmesh.h"
 
 #include <limits>
+#include <functional>
+
+static const std::vector<Gfx::Mesh::Vertex> vertices = {
+    {{ 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{ 0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}}
+};
 
 namespace Gfx
 {
     void Renderer::Init() {
         CreateCommandPool();
         CreateCommandBuffers();
+        CreateVertexBuffer();
         CreateSyncObjects();
         CreateRenderFinishedSemaphores();
+        CreateUploadContext();
     }
 
     void Renderer::CreateCommandPool()
@@ -47,6 +57,72 @@ namespace Gfx
         for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             Frames[i].Cmd.SetCmd(buffers[i]);
         }
+    }
+
+    void Renderer::CreateVertexBuffer()
+    {
+        VkDeviceSize size = sizeof(vertices[0]) * vertices.size();
+        BufferHelper::Create(VertexBuffer, size, vertices.data(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+
+        Core::Deletor::GetInstance()->Push(Core::Deletor::NONE, [this]{ BufferHelper::Destroy(VertexBuffer); });
+    }
+
+    void Renderer::CreateUploadContext()
+    {
+        VkDevice device = Device::GetInstance()->GetDevice();
+        QueueFamilyIndices indices = Device::GetInstance()->FindQueueFamilies(Device::GetInstance()->GetPhysicalDevice());
+
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        poolInfo.queueFamilyIndex = indices.GraphicsFamily.value();
+
+        VK_ASSERT(vkCreateCommandPool(device, &poolInfo, nullptr, &Upload.CommandPool), "failed to create upload command pool!");
+
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = Upload.CommandPool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = 1;
+
+        VK_ASSERT(vkAllocateCommandBuffers(device, &allocInfo, &Upload.CommandBuffer), "failed to allocate upload command buffer!");
+
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+        VK_ASSERT(vkCreateFence(device, &fenceInfo, nullptr, &Upload.Fence), "failed to create upload fence!");
+
+        VkCommandPool pool = Upload.CommandPool;
+        VkFence fence = Upload.Fence;
+        Core::Deletor::GetInstance()->Push(Core::Deletor::COMMAND, [device, pool, fence]{
+            vkDestroyFence(device, fence, nullptr);
+            vkDestroyCommandPool(device, pool, nullptr);
+        });
+    }
+
+    void Renderer::Submit(std::function<void(VkCommandBuffer cmd)>&& function)
+    {
+        VkDevice device = Device::GetInstance()->GetDevice();
+        VkCommandBuffer cmd = Upload.CommandBuffer;
+
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+        VK_ASSERT(vkBeginCommandBuffer(cmd, &beginInfo), "failed to begin upload command buffer!");
+        function(cmd);
+        VK_ASSERT(vkEndCommandBuffer(cmd), "failed to end upload command buffer!");
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &cmd;
+
+        VK_ASSERT(vkQueueSubmit(Device::GetInstance()->GetGraphicsQueue(), 1, &submitInfo, Upload.Fence), "failed to submit upload!");
+
+        vkWaitForFences(device, 1, &Upload.Fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+        vkResetFences(device, 1, &Upload.Fence);
+        vkResetCommandPool(device, Upload.CommandPool, 0);
     }
 
     void Renderer::CreateSyncObjects()
@@ -157,7 +233,11 @@ namespace Gfx
         scissor.extent = extent;
         vkCmdSetScissor(raw, 0, 1, &scissor);
 
-        vkCmdDraw(raw, 3, 1, 0, 0);
+        VkBuffer vertexBuffers[] = { VertexBuffer.Handle };
+        VkDeviceSize offsets[]   = { 0 };
+        vkCmdBindVertexBuffers(raw, 0, 1, vertexBuffers, offsets);
+
+        vkCmdDraw(raw, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 
         vkCmdEndRendering(raw);
 
