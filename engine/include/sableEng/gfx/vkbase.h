@@ -7,6 +7,9 @@
 #include "sableEng/gfx/vkswapchain.h"
 #include "sableEng/gfx/vkpipeline.h"
 #include "sableEng/gfx/vkrenderer.h"
+#include "sableEng/gfx/vkbuffer.h"
+#include "sableEng/gfx/vkcmdhelper.h"
+#include "sableEng/gfx/vkmesh.h"
 
 namespace Gfx
 {
