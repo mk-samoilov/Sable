@@ -17,6 +17,7 @@ namespace Gfx::BufferHelper
     void Copy(Buffer& src, Buffer& dst, VkDeviceSize size);
 
     void Create(Buffer& buffer, VkDeviceSize size, const void* src, VkBufferUsageFlags usage);
+    void CreateDeviceLocal(Buffer& buffer, VkDeviceSize size, const void* src, VkBufferUsageFlags usage);
 
     void Destroy(Buffer& buffer);
 }

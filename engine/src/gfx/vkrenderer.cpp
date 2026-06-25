@@ -18,10 +18,10 @@ namespace Gfx
     void Renderer::Init() {
         CreateCommandPool();
         CreateCommandBuffers();
+        CreateUploadContext();
         CreateVertexBuffer();
         CreateSyncObjects();
         CreateRenderFinishedSemaphores();
-        CreateUploadContext();
     }
 
     void Renderer::CreateCommandPool()
@@ -59,14 +59,6 @@ namespace Gfx
         }
     }
 
-    void Renderer::CreateVertexBuffer()
-    {
-        VkDeviceSize size = sizeof(vertices[0]) * vertices.size();
-        BufferHelper::Create(VertexBuffer, size, vertices.data(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-
-        Core::Deletor::GetInstance()->Push(Core::Deletor::NONE, [this]{ BufferHelper::Destroy(VertexBuffer); });
-    }
-
     void Renderer::CreateUploadContext()
     {
         VkDevice device = Device::GetInstance()->GetDevice();
@@ -98,6 +90,14 @@ namespace Gfx
             vkDestroyFence(device, fence, nullptr);
             vkDestroyCommandPool(device, pool, nullptr);
         });
+    }
+
+    void Renderer::CreateVertexBuffer()
+    {
+        VkDeviceSize size = sizeof(vertices[0]) * vertices.size();
+        BufferHelper::CreateDeviceLocal(VertexBuffer, size, vertices.data(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+
+        Core::Deletor::GetInstance()->Push(Core::Deletor::NONE, [this]{ BufferHelper::Destroy(VertexBuffer); });
     }
 
     void Renderer::Submit(std::function<void(VkCommandBuffer cmd)>&& function)

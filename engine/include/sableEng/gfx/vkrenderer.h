@@ -32,10 +32,10 @@ namespace Gfx
 
             void CreateCommandPool();
             void CreateCommandBuffers();
+            void CreateUploadContext();
             void CreateVertexBuffer();
             void CreateSyncObjects();
             void CreateRenderFinishedSemaphores();
-            void CreateUploadContext();
             void RecordCommandBuffer(CommandBuffer& cmd, uint32_t imageIndex);
             void RecreateSwapchain();
 

@@ -72,6 +72,20 @@ namespace Gfx::BufferHelper
         Map(buffer, size, src);
     }
 
+    void CreateDeviceLocal(Buffer& buffer, VkDeviceSize size, const void* src, VkBufferUsageFlags usage)
+    {
+        Buffer staging;
+        Allocate(staging, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        Map(staging, size, src);
+
+        Allocate(buffer, size, usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        Copy(staging, buffer, size);
+
+        Destroy(staging);
+    }
+
     void Destroy(Buffer& buffer)
     {
         VkDevice device = Gfx::Device::GetInstance()->GetDevice();
