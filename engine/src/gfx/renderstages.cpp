@@ -52,7 +52,7 @@ namespace Stages
 
     void Stages::UpdateRQ()
     {
-        // Live transform/visibility sync lands with the uniform-buffer step.
+        // transform/visibility sync lands with uniform-buffer step
     }
 
     void Stages::UpdateMaterials()
