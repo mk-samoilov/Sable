@@ -2,22 +2,26 @@
 
 #include "sableEng/utils/defines.h"
 #include "sableEng/gfx/vkdefines.h"
+#include "sableEng/gfx/renderhelpers.h"
+
+#include <string>
+#include <vector>
+#include <unordered_map>
 
 namespace Gfx
 {
     class Pipeline : public Utils::Singleton<Pipeline>
     {
         public:
-            void Init();
+            void BuildStandardMaterials();
+            void BuildMaterial(const std::string& name, const std::string& vertSpv, const std::string& fragSpv);
 
-            VkPipeline GetGraphicsPipeline() const { return GraphicsPipeline; }
-            VkPipelineLayout GetPipelineLayout() const { return PipelineLayout; }
+            Material* GetMaterial(const std::string& name);
 
         private:
-            void CreateGraphicsPipeline();
             VkShaderModule CreateShaderModule(const std::vector<char>& code);
+            VkPipeline CreateGraphicsPipeline(VkShaderModule vertShader, VkShaderModule fragShader, VkPipelineLayout layout);
 
-            VkPipelineLayout PipelineLayout = VK_NULL_HANDLE;
-            VkPipeline GraphicsPipeline = VK_NULL_HANDLE;
+            std::unordered_map<std::string, Material> Materials;
     };
 }

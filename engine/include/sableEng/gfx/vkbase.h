@@ -10,6 +10,8 @@
 #include "sableEng/gfx/vkbuffer.h"
 #include "sableEng/gfx/vkcmdhelper.h"
 #include "sableEng/gfx/vkmesh.h"
+#include "sableEng/gfx/renderhelpers.h"
+#include "sableEng/gfx/renderstages.h"
 
 namespace Gfx
 {

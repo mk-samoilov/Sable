@@ -4,6 +4,7 @@
 #include "sableEng/gfx/vkdefines.h"
 #include "sableEng/gfx/vkcmdhelper.h"
 #include "sableEng/gfx/vkbuffer.h"
+#include "sableEng/gfx/renderhelpers.h"
 
 #include <functional>
 
@@ -13,7 +14,13 @@ namespace Gfx
     {
         public:
             void Init();
-            void DrawFrame();
+
+            bool BeginFrame();
+            void StartRender(AttachmentRules rules = ATTACHMENT_RULE_CLEAR);
+            void Draw(RenderObject& object);
+            void DrawMesh(RenderObject& object, MeshInfo* mesh);
+            void EndRender();
+            void EndFrame();
 
             void Submit(std::function<void(VkCommandBuffer cmd)>&& function);
 
@@ -33,17 +40,17 @@ namespace Gfx
             void CreateCommandPool();
             void CreateCommandBuffers();
             void CreateUploadContext();
-            void CreateVertexBuffer();
             void CreateSyncObjects();
             void CreateRenderFinishedSemaphores();
-            void RecordCommandBuffer(CommandBuffer& cmd, uint32_t imageIndex);
             void RecreateSwapchain();
 
+            VkCommandBuffer CurrentCmd() { return Frames[CurrentFrame].Cmd.GetCmd(); }
+
             VkCommandPool CommandPool = VK_NULL_HANDLE;
-            BufferHelper::Buffer VertexBuffer;
             std::vector<VkSemaphore> RenderFinishedSemaphores;
             Frame Frames[MAX_FRAMES_IN_FLIGHT];
             UploadContext Upload;
             uint32_t CurrentFrame = 0;
+            uint32_t CurrentImageIndex = 0;
     };
 }

@@ -15,8 +15,9 @@ namespace Core
                 NONE = 0,
                 SWAPCHAIN,
                 PIPELINE,
-                COMMAND,
+                CMD,
                 SYNC,
+                DESC,
             };
 
             void Push(int tag, std::function<void()>&& function)

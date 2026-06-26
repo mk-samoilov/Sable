@@ -25,7 +25,6 @@ namespace Gfx
 
         Device::GetInstance()->Init();
         Swapchain::GetInstance()->Init();
-        Pipeline::GetInstance()->Init();
         Renderer::GetInstance()->Init();
     }
 

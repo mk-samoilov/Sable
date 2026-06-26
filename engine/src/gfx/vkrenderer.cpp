@@ -2,16 +2,9 @@
 #include "sableEng/gfx/vkbase.h"
 #include "sableEng/core/windowmanager.h"
 #include "sableEng/core/deletor.h"
-#include "sableEng/gfx/vkmesh.h"
 
 #include <limits>
 #include <functional>
-
-static const std::vector<Gfx::Mesh::Vertex> vertices = {
-    {{ 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{ 0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}}
-};
 
 namespace Gfx
 {
@@ -19,7 +12,6 @@ namespace Gfx
         CreateCommandPool();
         CreateCommandBuffers();
         CreateUploadContext();
-        CreateVertexBuffer();
         CreateSyncObjects();
         CreateRenderFinishedSemaphores();
     }
@@ -37,7 +29,7 @@ namespace Gfx
         VK_ASSERT(vkCreateCommandPool(device, &poolInfo, nullptr, &CommandPool), "failed to create command pool!");
 
         VkCommandPool pool = CommandPool;
-        Core::Deletor::GetInstance()->Push(Core::Deletor::COMMAND, [device, pool]{ vkDestroyCommandPool(device, pool, nullptr); });
+        Core::Deletor::GetInstance()->Push(Core::Deletor::CMD, [device, pool]{ vkDestroyCommandPool(device, pool, nullptr); });
     }
 
     void Renderer::CreateCommandBuffers()
@@ -86,18 +78,10 @@ namespace Gfx
 
         VkCommandPool pool = Upload.CommandPool;
         VkFence fence = Upload.Fence;
-        Core::Deletor::GetInstance()->Push(Core::Deletor::COMMAND, [device, pool, fence]{
+        Core::Deletor::GetInstance()->Push(Core::Deletor::CMD, [device, pool, fence]{
             vkDestroyFence(device, fence, nullptr);
             vkDestroyCommandPool(device, pool, nullptr);
         });
-    }
-
-    void Renderer::CreateVertexBuffer()
-    {
-        VkDeviceSize size = sizeof(vertices[0]) * vertices.size();
-        BufferHelper::CreateDeviceLocal(VertexBuffer, size, vertices.data(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-
-        Core::Deletor::GetInstance()->Push(Core::Deletor::NONE, [this]{ BufferHelper::Destroy(VertexBuffer); });
     }
 
     void Renderer::Submit(std::function<void(VkCommandBuffer cmd)>&& function)
@@ -166,86 +150,6 @@ namespace Gfx
         }
     }
 
-    void Renderer::RecordCommandBuffer(CommandBuffer& cmd, uint32_t imageIndex)
-    {
-        VkExtent2D extent = Swapchain::GetInstance()->GetExtent();
-
-        cmd.Begin();
-
-        VkCommandBuffer raw = cmd.GetCmd();
-
-        VkImageMemoryBarrier barrier{};
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image = Gfx::Swapchain::GetInstance()->GetImage(imageIndex);
-        barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-
-        vkCmdPipelineBarrier(raw,
-            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            0, 0, nullptr, 0, nullptr, 1, &barrier
-        );
-
-        VkRenderingAttachmentInfo colorAttachment{};
-        colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-        colorAttachment.imageView = Gfx::Swapchain::GetInstance()->GetImageViews()[imageIndex];
-        colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.clearValue.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-
-        VkRenderingInfo renderingInfo{};
-        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-        renderingInfo.renderArea = {{0, 0}, Gfx::Swapchain::GetInstance()->GetExtent()};
-        renderingInfo.layerCount = 1;
-        renderingInfo.colorAttachmentCount = 1;
-        renderingInfo.pColorAttachments = &colorAttachment;
-
-        vkCmdBeginRendering(raw, &renderingInfo);
-
-        vkCmdBindPipeline(raw, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline::GetInstance()->GetGraphicsPipeline());
-
-        VkViewport viewport{};
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = (float) extent.width;
-        viewport.height = (float) extent.height;
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(raw, 0, 1, &viewport);
-
-        VkRect2D scissor{};
-        scissor.offset = { 0, 0 };
-        scissor.extent = extent;
-        vkCmdSetScissor(raw, 0, 1, &scissor);
-
-        VkBuffer vertexBuffers[] = { VertexBuffer.Handle };
-        VkDeviceSize offsets[]   = { 0 };
-        vkCmdBindVertexBuffers(raw, 0, 1, vertexBuffers, offsets);
-
-        vkCmdDraw(raw, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-
-        vkCmdEndRendering(raw);
-
-        barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        barrier.dstAccessMask = 0;
-
-        vkCmdPipelineBarrier(raw,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-            0, 0, nullptr, 0, nullptr, 1, &barrier
-        );
-
-        cmd.End();
-    }
-
     void Renderer::RecreateSwapchain()
     {
         int width = 0, height = 0;
@@ -263,26 +167,134 @@ namespace Gfx
         CreateRenderFinishedSemaphores();
     }
 
-    void Renderer::DrawFrame()
+    bool Renderer::BeginFrame()
     {
         VkDevice device = Device::GetInstance()->GetDevice();
         Frame& frame = Frames[CurrentFrame];
 
         vkWaitForFences(device, 1, &frame.InFlight, VK_TRUE, std::numeric_limits<uint64_t>::max());
 
-        uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(device, Swapchain::GetInstance()->GetSwapChain(), std::numeric_limits<uint64_t>::max(), frame.ImageAvailable, VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(device, Swapchain::GetInstance()->GetSwapChain(), std::numeric_limits<uint64_t>::max(), frame.ImageAvailable, VK_NULL_HANDLE, &CurrentImageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             RecreateSwapchain();
-            return;
+            return false;
         }
         ASSERT(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR, "failed to acquire swap chain image!");
 
         vkResetFences(device, 1, &frame.InFlight);
 
         frame.Cmd.Reset();
-        RecordCommandBuffer(frame.Cmd, imageIndex);
+        frame.Cmd.Begin();
+
+        return true;
+    }
+
+    void Renderer::StartRender(AttachmentRules rules)
+    {
+        VkCommandBuffer raw = CurrentCmd();
+        VkExtent2D extent = Swapchain::GetInstance()->GetExtent();
+
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = Swapchain::GetInstance()->GetImage(CurrentImageIndex);
+        barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+
+        vkCmdPipelineBarrier(raw,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            0, 0, nullptr, 0, nullptr, 1, &barrier
+        );
+
+        VkRenderingAttachmentInfo colorAttachment{};
+        colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        colorAttachment.imageView = Swapchain::GetInstance()->GetImageViews()[CurrentImageIndex];
+        colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachment.loadOp = (rules & ATTACHMENT_RULE_LOAD) ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.clearValue.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+
+        VkRenderingInfo renderingInfo{};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo.renderArea = {{0, 0}, extent};
+        renderingInfo.layerCount = 1;
+        renderingInfo.colorAttachmentCount = 1;
+        renderingInfo.pColorAttachments = &colorAttachment;
+
+        vkCmdBeginRendering(raw, &renderingInfo);
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float) extent.width;
+        viewport.height = (float) extent.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(raw, 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = { 0, 0 };
+        scissor.extent = extent;
+        vkCmdSetScissor(raw, 0, 1, &scissor);
+    }
+
+    void Renderer::Draw(RenderObject& object)
+    {
+        DrawMesh(object, object.Mesh);
+    }
+
+    void Renderer::DrawMesh(RenderObject& object, MeshInfo* mesh)
+    {
+        if (!object.Material || !mesh) {
+            return;
+        }
+
+        VkCommandBuffer raw = CurrentCmd();
+
+        vkCmdBindPipeline(raw, VK_PIPELINE_BIND_POINT_GRAPHICS, object.Material->Pipeline);
+
+        VkBuffer vertexBuffers[] = { mesh->VertexBuffer.Handle };
+        VkDeviceSize offsets[]   = { 0 };
+        vkCmdBindVertexBuffers(raw, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(raw, mesh->IndexBuffer.Handle, 0, VK_INDEX_TYPE_UINT16);
+
+        vkCmdDrawIndexed(raw, static_cast<uint32_t>(mesh->Indices.size()), 1, 0, 0, 0);
+    }
+
+    void Renderer::EndRender()
+    {
+        vkCmdEndRendering(CurrentCmd());
+    }
+
+    void Renderer::EndFrame()
+    {
+        Frame& frame = Frames[CurrentFrame];
+        VkCommandBuffer raw = frame.Cmd.GetCmd();
+
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        barrier.dstAccessMask = 0;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = Swapchain::GetInstance()->GetImage(CurrentImageIndex);
+        barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+
+        vkCmdPipelineBarrier(raw,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+            0, 0, nullptr, 0, nullptr, 1, &barrier
+        );
+
+        frame.Cmd.End();
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -292,11 +304,10 @@ namespace Gfx
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
-        VkCommandBuffer cmd = frame.Cmd.GetCmd();
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &cmd;
+        submitInfo.pCommandBuffers = &raw;
 
-        VkSemaphore signalSemaphores[] = { RenderFinishedSemaphores[imageIndex] };
+        VkSemaphore signalSemaphores[] = { RenderFinishedSemaphores[CurrentImageIndex] };
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -310,9 +321,9 @@ namespace Gfx
         VkSwapchainKHR swapChains[] = { Swapchain::GetInstance()->GetSwapChain() };
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains;
-        presentInfo.pImageIndices = &imageIndex;
+        presentInfo.pImageIndices = &CurrentImageIndex;
 
-        result = vkQueuePresentKHR(Device::GetInstance()->GetPresentQueue(), &presentInfo);
+        VkResult result = vkQueuePresentKHR(Device::GetInstance()->GetPresentQueue(), &presentInfo);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || Core::WindowManager::GetInstance()->IsResized()) {
             Core::WindowManager::GetInstance()->SetResized(false);

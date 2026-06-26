@@ -8,6 +8,13 @@
 
 #include "sableEng/utils/singleton.h"
 
+namespace Utils
+{
+    inline bool IsBitSet(int value, int bit) { return (value & bit) != 0; }
+    inline void ClearBit(int* value, int bit) { *value &= ~bit; }
+    inline void ToggleBit(int* value, int bit) { *value ^= bit; }
+}
+
 #define VK_ASSERT(x, s)                                                       \
     do                                                                        \
     {                                                                         \

@@ -1,7 +1,8 @@
 #include "sableEng/gfx/vkmesh.h"
-#include "sableEng/gfx/vkbase.h"
 
-namespace Gfx::Mesh
+#include <utility>
+
+namespace Gfx
 {
     VkVertexInputBindingDescription Vertex::GetBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{};
@@ -26,5 +27,44 @@ namespace Gfx::Mesh
         attributeDescriptions[1].offset = offsetof(Vertex, color);
 
         return attributeDescriptions;
+    }
+
+    void MeshInfo::Clean()
+    {
+        BufferHelper::Destroy(VertexBuffer);
+        BufferHelper::Destroy(IndexBuffer);
+    }
+
+    void Mesh::CreateMesh(const std::string& name, const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices)
+    {
+        MeshInfo info;
+        info.Name = name;
+        info.Vertices = vertices;
+        info.Indices = indices;
+
+        VkDeviceSize vertexSize = sizeof(Vertex) * vertices.size();
+        BufferHelper::CreateDeviceLocal(info.VertexBuffer, vertexSize, vertices.data(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+
+        VkDeviceSize indexSize = sizeof(uint16_t) * indices.size();
+        BufferHelper::CreateDeviceLocal(info.IndexBuffer, indexSize, indices.data(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+
+        Meshes[name] = std::move(info);
+    }
+
+    MeshInfo* Mesh::GetMesh(const std::string& name)
+    {
+        auto it = Meshes.find(name);
+        if (it == Meshes.end()) {
+            return nullptr;
+        }
+        return &it->second;
+    }
+
+    void Mesh::CleanAll()
+    {
+        for (auto& it : Meshes) {
+            it.second.Clean();
+        }
+        Meshes.clear();
     }
 }
