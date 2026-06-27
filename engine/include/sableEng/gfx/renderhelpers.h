@@ -9,6 +9,12 @@
 
 namespace Gfx
 {
+    struct CameraData {
+        glm::mat4 model;
+        glm::mat4 view;
+        glm::mat4 proj;
+    };
+
     struct Material
     {
         VkPipeline       Pipeline = VK_NULL_HANDLE;

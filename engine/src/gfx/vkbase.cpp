@@ -1,4 +1,5 @@
 #include "sableEng/gfx/vkbase.h"
+#include "sableEng/gfx/vkdescriptors.h"
 #include "sableEng/core/deletor.h"
 
 #define GLFW_INCLUDE_VULKAN
@@ -25,6 +26,7 @@ namespace Gfx
 
         Device::GetInstance()->Init();
         Swapchain::GetInstance()->Init();
+        Descriptors::GetInstance()->Init();
         Renderer::GetInstance()->Init();
     }
 

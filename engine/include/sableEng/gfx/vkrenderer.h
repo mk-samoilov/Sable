@@ -24,6 +24,8 @@ namespace Gfx
 
             void Submit(std::function<void(VkCommandBuffer cmd)>&& function);
 
+            uint32_t GetFrameIndex() const { return CurrentFrame; }
+
         private:
             struct Frame {
                 Gfx::CommandBuffer Cmd;

@@ -4,6 +4,7 @@
 #include "sableEng/core/assetshelper.h"
 #include "sableEng/core/deletor.h"
 #include "sableEng/gfx/vkmesh.h"
+#include "sableEng/gfx/vkdescriptors.h"
 
 namespace Gfx
 {
@@ -31,9 +32,12 @@ namespace Gfx
         VkShaderModule vertShader = CreateShaderModule(vertCode);
         VkShaderModule fragShader = CreateShaderModule(fragCode);
 
+        VkDescriptorSetLayout setLayout = Descriptors::GetInstance()->GetLayout();
+
         VkPipelineLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        layoutInfo.setLayoutCount = 0;
+        layoutInfo.setLayoutCount = 1;
+        layoutInfo.pSetLayouts = &setLayout;
         layoutInfo.pushConstantRangeCount = 0;
 
         VkPipelineLayout layout = VK_NULL_HANDLE;

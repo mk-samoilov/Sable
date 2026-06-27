@@ -1,5 +1,6 @@
 #include "sableEng/gfx/vkrenderer.h"
 #include "sableEng/gfx/vkbase.h"
+#include "sableEng/gfx/vkdescriptors.h"
 #include "sableEng/core/windowmanager.h"
 #include "sableEng/core/deletor.h"
 
@@ -258,6 +259,9 @@ namespace Gfx
         VkCommandBuffer raw = CurrentCmd();
 
         vkCmdBindPipeline(raw, VK_PIPELINE_BIND_POINT_GRAPHICS, object.Material->Pipeline);
+
+        VkDescriptorSet set = Descriptors::GetInstance()->GetSet(CurrentFrame);
+        vkCmdBindDescriptorSets(raw, VK_PIPELINE_BIND_POINT_GRAPHICS, object.Material->PipelineLayout, 0, 1, &set, 0, nullptr);
 
         VkBuffer vertexBuffers[] = { mesh->VertexBuffer.Handle };
         VkDeviceSize offsets[]   = { 0 };
