@@ -1,6 +1,9 @@
 #include "sableEng/engine.h"
 #include "sableEng/core/scene.h"
-#include "sableEng/gfx/vkmesh.h"
+#include "sableEng/core/windowmanager.h"
+#include "sableEng/core/deletor.h"
+#include "sableEng/gfx/vkbase.h"
+#include "sableEng/scripting/scripting.h"
 
 #include <chrono>
 
@@ -11,6 +14,7 @@ void Engine::Init()
     Core::WindowManager::GetInstance()->InitWindow();
     Gfx::Vulkan::GetInstance()->Init();
     Core::Scene::GetInstance()->Init();
+    Scripting::ScriptManager::GetInstance()->Init();
 }
 
 void Engine::Run(const std::function<void(float dt)>& update)

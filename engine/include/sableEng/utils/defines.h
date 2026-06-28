@@ -8,6 +8,8 @@
 
 #include "sableEng/utils/singleton.h"
 
+const std::string SCRIPTS_DIR = "scripts";
+
 namespace Utils
 {
     inline bool IsBitSet(int value, int bit) { return (value & bit) != 0; }

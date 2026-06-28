@@ -1,9 +1,6 @@
 #pragma once
 
 #include "sableEng/utils/defines.h"
-#include "sableEng/core/windowmanager.h"
-#include "sableEng/core/deletor.h"
-#include "sableEng/gfx/vkbase.h"
 
 #include <functional>
 
