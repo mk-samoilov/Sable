@@ -1,7 +1,6 @@
 #include "sableEng/engine.h"
 #include "sableEng/core/scene.h"
-
-#include <chrono>
+#include "sableEng/core/keyboard.h"
 
 void Engine::Init()
 {
@@ -10,6 +9,12 @@ void Engine::Init()
     Core::WindowManager::GetInstance()->InitWindow();
     Gfx::Vulkan::GetInstance()->Init();
     Core::Scene::GetInstance()->Init();
+
+    Core::Keyboard::GetInstance()->Bind(
+        "closeGame",
+        256,
+        [this]{ Core::WindowManager::GetInstance()->CloseWindow(); }
+    );
 }
 
 void Engine::Run()
@@ -18,6 +23,9 @@ void Engine::Run()
 
     while (!Core::WindowManager::GetInstance()->ShouldClose()) {
         Core::WindowManager::GetInstance()->PollEvents();
+
+        Core::Keyboard::GetInstance()->Update();
+
         Core::Scene::GetInstance()->Update();
     }
 

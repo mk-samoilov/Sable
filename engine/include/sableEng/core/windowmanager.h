@@ -23,6 +23,8 @@ namespace Core
             bool IsResized() const { return FramebufferResized; }
             void SetResized(bool resized) { FramebufferResized = resized; }
 
+            void CloseWindow() { glfwSetWindowShouldClose(Window, GLFW_TRUE); }
+
         private:
             static void FramebufferResizeCallback(GLFWwindow*, int, int);
 
