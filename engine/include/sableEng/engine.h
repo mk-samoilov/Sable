@@ -5,8 +5,6 @@
 #include "sableEng/core/deletor.h"
 #include "sableEng/gfx/vkbase.h"
 
-#include <functional>
-
 enum EngineState {
     ENGINE_STATE_INIT = 1 << 0, /* 0000 0001 */
     ENGINE_STATE_PLAY = 1 << 1, /* 0000 0010 */
@@ -16,7 +14,7 @@ class Engine : public Utils::Singleton<Engine>
 {
     public:
         void Init();
-        void Run(const std::function<void(float dt)>& update);
+        void Run();
         void CleanUp();
 
         int GetState() const { return State; }

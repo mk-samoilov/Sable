@@ -1,6 +1,5 @@
 #include "sableEng/engine.h"
 #include "sableEng/core/scene.h"
-#include "sableEng/gfx/vkmesh.h"
 
 #include <chrono>
 
@@ -13,23 +12,12 @@ void Engine::Init()
     Core::Scene::GetInstance()->Init();
 }
 
-void Engine::Run(const std::function<void(float dt)>& update)
+void Engine::Run()
 {
     SetState(ENGINE_STATE_PLAY);
 
-    auto lastTime = std::chrono::high_resolution_clock::now();
-
     while (!Core::WindowManager::GetInstance()->ShouldClose()) {
         Core::WindowManager::GetInstance()->PollEvents();
-
-        auto now = std::chrono::high_resolution_clock::now();
-        float dt = std::chrono::duration<float>(now - lastTime).count();
-        lastTime = now;
-
-        if (update) {
-            update(dt);
-        }
-
         Core::Scene::GetInstance()->Update();
     }
 
@@ -40,7 +28,6 @@ void Engine::Run(const std::function<void(float dt)>& update)
 
 void Engine::CleanUp()
 {
-    Gfx::Mesh::GetInstance()->CleanAll();
     Core::Deletor::GetInstance()->CleanAll();
     Core::WindowManager::GetInstance()->CleanUp();
 }

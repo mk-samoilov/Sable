@@ -18,6 +18,7 @@ namespace Core
                 CMD,
                 SYNC,
                 DESC,
+                MESH,
             };
 
             void Push(int tag, std::function<void()>&& function)

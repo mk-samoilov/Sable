@@ -6,10 +6,6 @@
 
 #include <vector>
 
-void mainLoop(float dt) {
-
-}
-
 int main() {
     try {
         Engine::GetInstance()->Init();
@@ -31,6 +27,6 @@ int main() {
         info.ParsedID = "quad_0";
         objectsKeeper->Create<GameObjects::Sprite>(new GameObjects::Sprite(info));
 
-        Engine::GetInstance()->Run(mainLoop);
+        Engine::GetInstance()->Run();
     } catch (const std::exception& e) { std::cerr << e.what() << "\n"; return 1; }
 }
