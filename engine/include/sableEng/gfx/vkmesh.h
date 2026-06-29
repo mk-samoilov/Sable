@@ -40,6 +40,8 @@ namespace Gfx
     class Mesh : public Utils::Singleton<Mesh>
     {
         public:
+            Mesh();
+
             void CreateMesh(const std::string& name, const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices);
             MeshInfo* GetMesh(const std::string& name);
             void CleanAll();

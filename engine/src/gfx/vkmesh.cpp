@@ -1,4 +1,5 @@
 #include "sableEng/gfx/vkmesh.h"
+#include "sableEng/core/deletor.h"
 
 #include <utility>
 
@@ -33,6 +34,12 @@ namespace Gfx
     {
         BufferHelper::Destroy(VertexBuffer);
         BufferHelper::Destroy(IndexBuffer);
+    }
+
+    Mesh::Mesh()
+    {
+        Core::Deletor::GetInstance()->Push(Core::Deletor::MESH, 
+            []{ Mesh::GetInstance()->CleanAll(); });
     }
 
     void Mesh::CreateMesh(const std::string& name, const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices)

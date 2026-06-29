@@ -28,8 +28,6 @@ namespace Gfx
         Swapchain::GetInstance()->Init();
         Descriptors::GetInstance()->Init();
         Renderer::GetInstance()->Init();
-
-        Core::Deletor::GetInstance()->Push(Core::Deletor::MESH, [this]{ Gfx::Mesh::GetInstance()->CleanAll(); });
     }
 
     void Vulkan::CreateInstance()
