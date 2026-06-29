@@ -48,26 +48,26 @@ namespace GameObjects
         return !ObjectsList[type].empty();
     }
 
-    std::vector<Objects*>& Keeper::Get(Type type)
+    std::vector<Object*>& Keeper::Get(Type type)
     {
         return ObjectsList[type];
     }
 
-    const Objects* Keeper::GetObject(Type type, int id) const
+    const Object* Keeper::GetObject(Type type, int id) const
     {
         const auto& vec = ObjectsList.at(type);
-        auto it = std::find_if(vec.begin(), vec.end(), [id](const Objects* o) { return o->GetID() == (uint32_t)id; });
+        auto it = std::find_if(vec.begin(), vec.end(), [id](const Object* o) { return o->GetID() == (uint32_t)id; });
         return it == vec.end() ? nullptr : *it;
     }
 
-    Objects* Keeper::GetNotConstObject(Type type, int id)
+    Object* Keeper::GetNotConstObject(Type type, int id)
     {
         auto& vec = ObjectsList[type];
-        auto it = std::find_if(vec.begin(), vec.end(), [id](const Objects* o) { return o->GetID() == (uint32_t)id; });
+        auto it = std::find_if(vec.begin(), vec.end(), [id](const Object* o) { return o->GetID() == (uint32_t)id; });
         return it == vec.end() ? nullptr : *it;
     }
 
-    Objects* Keeper::GetLast(Type type)
+    Object* Keeper::GetLast(Type type)
     {
         auto& vec = ObjectsList[type];
         return vec.empty() ? nullptr : vec.back();
@@ -105,7 +105,7 @@ namespace GameObjects
     void Keeper::Update()
     {
         for (auto& it : ObjectsList) {
-            for (Objects* obj : it.second) {
+            for (Object* obj : it.second) {
                 obj->Update();
             }
         }

@@ -4,7 +4,7 @@
 
 namespace GameObjects
 {
-    class Sprite : public Objects
+    class Sprite : public Object
     {
         public:
             Sprite() {}

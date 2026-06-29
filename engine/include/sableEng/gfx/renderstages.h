@@ -47,7 +47,7 @@ namespace Stages
             void Clear() { SceneStages.clear(); }
 
             void Populate(const std::string& key, std::function<bool(GameObjects::Type)> skip);
-            Gfx::RenderObject LoadResources(const GameObjects::Objects* obj);
+            Gfx::RenderObject LoadResources(const GameObjects::Object* obj);
 
             void Sync();
             void UpdateRQ();

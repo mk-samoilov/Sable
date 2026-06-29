@@ -31,11 +31,11 @@ namespace GameObjects
         SIZE
     };
 
-    class Objects
+    class Object
     {
         public:
-            Objects() { UniqueID = IDCounter++; }
-            virtual ~Objects() {}
+            Object() { UniqueID = IDCounter++; }
+            virtual ~Object() {}
 
             virtual Type GetType() const { return SIZE; }
 
@@ -55,7 +55,7 @@ namespace GameObjects
             inline static std::atomic_uint32_t IDCounter = 1;
     };
 
-    typedef std::map<int, std::vector<Objects*>> GameObjectsMap;
+    typedef std::map<int, std::vector<Object*>> GameObjectsMap;
 
     class Keeper
     {
@@ -75,11 +75,11 @@ namespace GameObjects
 
             bool Find(Type type) const;
             bool IsValid(Type type);
-            std::vector<Objects*>& Get(Type type);
+            std::vector<Object*>& Get(Type type);
             const GameObjectsMap& GetObjects() const { return ObjectsList; }
-            const Objects* GetObject(Type type, int id) const;
-            Objects* GetNotConstObject(Type type, int id);
-            Objects* GetLast(Type type);
+            const Object* GetObject(Type type, int id) const;
+            Object* GetNotConstObject(Type type, int id);
+            Object* GetLast(Type type);
             size_t GetObjectsSize() const;
 
             void SetSelectedID(uint32_t id) { SelectedID = id; }
@@ -89,7 +89,7 @@ namespace GameObjects
             void Update();
             void CleanIfNot(Type type, bool resetID = false);
 
-            const std::vector<Objects*>& GetAdded() const { return Added; }
+            const std::vector<Object*>& GetAdded() const { return Added; }
             const std::vector<int>& GetRemoved() const { return Removed; }
             void ClearPending() { Added.clear(); Removed.clear(); }
 
@@ -97,7 +97,7 @@ namespace GameObjects
             GameObjectsMap ObjectsList;
             uint32_t SelectedID = 0;
 
-            std::vector<Objects*> Added;
+            std::vector<Object*> Added;
             std::vector<int> Removed;
     };
 }

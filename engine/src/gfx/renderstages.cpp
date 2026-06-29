@@ -4,7 +4,7 @@
 
 namespace Stages
 {
-    Gfx::RenderObject Stages::LoadResources(const GameObjects::Objects* obj)
+    Gfx::RenderObject Stages::LoadResources(const GameObjects::Object* obj)
     {
         Gfx::RenderObject ro;
         ro.ID = obj->GetID();
@@ -19,7 +19,7 @@ namespace Stages
     {
         Stage stage(key);
         for (const auto& it : Keep->GetObjects()) {
-            for (GameObjects::Objects* obj : it.second) {
+            for (GameObjects::Object* obj : it.second) {
                 if (skip(obj->GetType())) {
                     continue;
                 }
@@ -42,7 +42,7 @@ namespace Stages
             for (int id : Keep->GetRemoved()) {
                 std::erase_if(queue, [id](const Gfx::RenderObject& ro) { return (int)ro.ID == id; });
             }
-            for (GameObjects::Objects* obj : Keep->GetAdded()) {
+            for (GameObjects::Object* obj : Keep->GetAdded()) {
                 stage.AddRQ(RQ_GENERAL, LoadResources(obj));
             }
         }

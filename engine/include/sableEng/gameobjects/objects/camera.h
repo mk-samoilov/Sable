@@ -4,8 +4,7 @@
 
 namespace GameObjects
 {
-    // empty type for now, view/projection logic lands with the uniform-buffer step.
-    class Camera : public Objects
+    class Camera : public Object
     {
         public:
             Camera() {}
